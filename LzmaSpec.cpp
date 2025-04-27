@@ -1,9 +1,12 @@
+// vim: set et ts=2 sw=2:
 /* LzmaSpec.c -- LZMA Reference Decoder
 2015-06-14 : Igor Pavlov : Public domain */
 
 // This code implements LZMA file decoding according to LZMA specification.
 // This code is not optimized for speed.
 
+#include <cstddef>
+#include <cstdint>
 #include <stdio.h>
 #include <math.h>
 #include <string.h>
@@ -21,27 +24,17 @@
   #pragma warning(disable : 4996) // This function or variable may be unsafe
 #endif
 
-typedef unsigned char Byte;
-typedef unsigned short UInt16;
-
-#ifdef _LZMA_UINT32_IS_ULONG
-  typedef unsigned long UInt32;
-#else
-  typedef unsigned int UInt32;
-#endif
-
-#if defined(_MSC_VER) || defined(__BORLANDC__)
-  typedef unsigned __int64 UInt64;
-#else
-  typedef unsigned long long int UInt64;
-#endif
+typedef uint8_t Byte;
+typedef uint16_t UInt16;
+typedef uint32_t UInt32;
+typedef uint64_t UInt64;
 
 
 struct CInputStream
 {
   FILE *File;
   UInt64 Processed;
-  
+
   void Init() { Processed = 0; }
 
   Byte ReadByte()
@@ -162,10 +155,10 @@ bool CRangeDecoder::Init()
   Perplexity = 0.f;
 
   Byte b = InStream->ReadByte();
-  
+
   for (int i = 0; i < 4; i++)
     Code = (Code << 8) | InStream->ReadByte();
-  
+
   if (b != 0 || Code == Range)
     Corrupted = true;
   return b == 0;
@@ -192,10 +185,10 @@ UInt32 CRangeDecoder::DecodeDirectBits(unsigned numBits)
     Code -= Range;
     UInt32 t = 0 - ((UInt32)Code >> 31);
     Code += Range & t;
-    
+
     if (Code == Range)
       Corrupted = true;
-    
+
     Normalize();
     res <<= 1;
     res += t + 1;
@@ -364,7 +357,7 @@ public:
   }
 
   int Decode(bool unpackSizeDefined, UInt64 unpackSize);
-  
+
 private:
 
   CProb *LitProbs;
@@ -373,24 +366,24 @@ private:
   {
     LitProbs = new CProb[(UInt32)0x300 << (lc + lp)];
   }
-  
+
   void InitLiterals()
   {
     UInt32 num = (UInt32)0x300 << (lc + lp);
     for (UInt32 i = 0; i < num; i++)
       LitProbs[i] = PROB_INIT_VAL;
   }
-  
+
   void DecodeLiteral(unsigned state, UInt32 rep0)
   {
     unsigned prevByte = 0;
     if (!OutWindow.IsEmpty())
       prevByte = OutWindow.GetByte(1);
-    
+
     unsigned symbol = 1;
     unsigned litState = ((OutWindow.TotalPos & ((1 << lp) - 1)) << lc) + (prevByte >> (8 - lc));
     CProb *probs = &LitProbs[(UInt32)0x300 * litState];
-    
+
     if (state >= 7)
     {
       unsigned matchByte = OutWindow.GetByte(rep0 + 1);
@@ -413,7 +406,7 @@ private:
   CBitTreeDecoder<6> PosSlotDecoder[kNumLenToPosStates];
   CBitTreeDecoder<kNumAlignBits> AlignDecoder;
   CProb PosDecoders[1 + kNumFullDistances - kEndPosModelIndex];
-  
+
   void InitDist()
   {
     for (unsigned i = 0; i < kNumLenToPosStates; i++)
@@ -421,17 +414,17 @@ private:
     AlignDecoder.Init();
     INIT_PROBS(PosDecoders);
   }
-  
+
   unsigned DecodeDistance(unsigned len)
   {
     unsigned lenState = len;
     if (lenState > kNumLenToPosStates - 1)
       lenState = kNumLenToPosStates - 1;
-    
+
     unsigned posSlot = PosSlotDecoder[lenState].Decode(&RangeDec);
     if (posSlot < 4)
       return posSlot;
-    
+
     unsigned numDirectBits = (unsigned)((posSlot >> 1) - 1);
     UInt32 dist = ((2 | (posSlot & 1)) << numDirectBits);
     if (posSlot < kEndPosModelIndex)
@@ -478,7 +471,7 @@ private:
     RepLenDecoder.Init();
   }
 };
-    
+
 
 #define LZMA_RES_ERROR                   0
 #define LZMA_RES_FINISHED_WITH_MARKER    1
@@ -493,7 +486,7 @@ int CLzmaDecoder::Decode(bool unpackSizeDefined, UInt64 unpackSize)
 
   UInt32 rep0 = 0, rep1 = 0, rep2 = 0, rep3 = 0;
   unsigned state = 0;
-  
+
   for (;;)
   {
     if (unpackSizeDefined && unpackSize == 0 && !markerIsMandatory)
@@ -513,9 +506,9 @@ int CLzmaDecoder::Decode(bool unpackSizeDefined, UInt64 unpackSize)
       unpackSize--;
       continue;
     }
-    
+
     unsigned len;
-    
+
     if (RangeDec.DecodeBit(&IsRep[state]) != 0)
     {
       if (unpackSizeDefined && unpackSize == 0)
@@ -602,11 +595,11 @@ private:
       : r(red), g(green), b(blue), val(value) {}
   };
   std::vector<ColorPoint> color;      // An array of color points in ascending value.
-  
+
 public:
   //-- Default constructor:
   ColorGradient()  {  createDefaultHeatMapGradient();  }
-  
+
   //-- Inserts a new color point into its correct position:
   void addColorPoint(float red, float green, float blue, float value)
   {
@@ -616,10 +609,10 @@ public:
         return;  }}
     color.push_back(ColorPoint(red,green,blue, value));
   }
-  
+
   //-- Inserts a new color point into its correct position:
   void clearGradient() { color.clear(); }
- 
+
   //-- Places a 5 color heapmap gradient into the "color" vector:
   void createDefaultHeatMapGradient()
   {
@@ -638,14 +631,14 @@ public:
     color.push_back(ColorPoint(0x3D/255.f,0xBB/255.f,0x74/255.f,   0.66f));
     color.push_back(ColorPoint(0xFA/255.f,0xE6/255.f,0x22/255.f,   1.f));
   }
-  
+
   //-- Inputs a (value) between 0 and 1 and outputs the (red), (green) and (blue)
   //-- values representing that position in the gradient.
   void getColorAtValue(const float value, float &red, float &green, float &blue)
   {
     if(color.size()==0)
       return;
-    
+
     for(int i=0; i<color.size(); i++)
     {
       ColorPoint &currC = color[i];
@@ -689,51 +682,198 @@ public:
   }
 };
 
+static struct {
+  std::string infile;
+  std::string kkpout;
+  bool pretty;
+  bool jet;
+  bool literals;
+} options;
+
 static void usage(char** argv) {
-  std::cerr << "usage: " << argv[0] << " [--raw] [--jet] [--help] file.lzma" << std::endl;
+  std::cerr << "usage: " << argv[0] << " [--raw] [--jet] [--kkp outfile.kkp] [--help] file.lzma" << std::endl;
 }
 
-int main(int argc, char** argv)
-{
+static int parse_args(int argc, char** argv) {
 #ifdef _MSC_VER
-  bool pretty = true;
+  options.pretty = true;
 #else
-  bool pretty = isatty(STDOUT_FILENO);
+  options.pretty = isatty(STDOUT_FILENO);
 #endif
-  bool jet = false;
-  bool literals = false;
+  options.jet = false;
+  options.literals = false;
+  options.kkpout = "";
+  options.infile = "";
 
   if (argc < 2) {
     usage(argv);
     return 1;
   }
 
-  int fileargind = 1;
-  if (!strcmp(argv[fileargind], "--raw")) {
-    fileargind++;
-    pretty = false;
+  for (int i = 1; i < argc; ++i) {
+    const char* curarg = argv[i];
+    if (!strcmp(curarg, "--raw")) {
+      options.pretty = false;
+      continue;
+    }
+    if (!strcmp(curarg, "--jet")) {
+      options.jet = true;
+      continue;
+    }
+    if (!strcmp(curarg, "--lits") || !strcmp(curarg, "--literals")) {
+      options.literals = true;
+      continue;
+    }
+    if (!strcmp(curarg, "--help")) {
+      usage(argv);
+      return 0;
+    }
+
+    if (!strcmp(curarg, "--kkp")) {
+      if (i == argc - 1) {
+        std::cerr << argv[0] << ": Need output file argument for --kkp flag!" << std::endl;
+        return 1;
+      }
+      options.kkpout = argv[i+1];
+      ++i;
+      continue;
+    }
+
+    if (!options.infile.empty()) {
+      std::cerr << argv[0] << ": Input file already specified! Was parsed as '" << options.infile << "', now also got '" << curarg << "'." << std::endl;
+      return 1;
+    }
+    options.infile = curarg;
   }
 
-  if (!strcmp(argv[fileargind], "--jet")) {
-    fileargind++;
-    jet = true;
+  if (options.infile.empty()) {
+    std::cerr << argv[0] << ": No input file specified!" << std::endl;
+    return 1;
   }
 
-  if (!strcmp(argv[fileargind], "--lits")) {
-    fileargind++;
-    literals = true;
+  return -1;
+}
+
+static int output_raw(CLzmaDecoder& lzmaDecoder, double maxPerplexity) {
+  for (int j = 0; j < lzmaDecoder.OutWindow.OutStream.Data.size(); j++) {
+    std::cout << lzmaDecoder.Perplexities[j]/maxPerplexity << std::endl;
+  }
+  std::cout << std::endl;
+  return 0;
+}
+
+static int output_kkp(CLzmaDecoder& lzmaDecoder, double maxPerplexity) {
+  FILE* fo = fopen(options.kkpout.c_str(), "wb");
+  if (!fo) {
+    return 1;
   }
 
-  if (!strcmp(argv[fileargind], "--help")) {
-    usage(argv);
-    return 0;
+  double totalPerpl = 0;
+  for (size_t j = 0; j < lzmaDecoder.OutWindow.OutStream.Data.size(); j++) {
+    totalPerpl += lzmaDecoder.Perplexities[j];
   }
+  totalPerpl /= 8;
+
+  uint32_t zero = 0;
+  uint32_t one = htole32((uint32_t)1);
+  uint32_t mone = 0xffffffffu;
+  uint32_t size32l = htole32((uint32_t)lzmaDecoder.OutWindow.OutStream.Data.size());
+
+  // magic bytes
+  fwrite("KK64", 1, 4, fo);
+  // number of binary bytes
+  fwrite(&size32l, 4, 1, fo);
+  // number of source code files
+  fwrite(&zero, 4, 1, fo);
+
+  // normally, source code info would be here
+
+  // number of symbols (zero)
+  fwrite(&zero, 4, 1, fo);
+
+  // normally, symbols would be here
+
+  // all compressed bytes
+  for (size_t j = 0; j < lzmaDecoder.OutWindow.OutStream.Data.size(); ++j) {
+    uint8_t v = lzmaDecoder.OutWindow.OutStream.Data[j];
+    fwrite(&v, 1, 1, fo); // orig. data
+    fwrite(&zero, 2, 1, fo); // symbol index
+    double psz = lzmaDecoder.Perplexities[j] / 8;
+    fwrite(&psz, 8, 1, fo);
+    fwrite(&zero, 2, 1, fo); // source code line
+    fwrite(&zero, 2, 1, fo); // source code file index
+  }
+
+  fclose(fo);
+
+  return 0;
+}
+
+static int output_console(CLzmaDecoder& lzmaDecoder, double maxPerplexity) {
+  ColorGradient grad;
+  if (options.jet) {
+    grad.createDefaultHeatMapGradient();
+  } else {
+    grad.createViridisHeatMapGradient();
+  }
+
+  int colWidth = 64;
+  int scaleFreq = 16;
+  float minForCol = 1.;
+  float maxForCol = 0;
+  float avgForCol = 0;
+
+  for (int j = 0; j < lzmaDecoder.OutWindow.OutStream.Data.size(); j++) {
+    if (j % colWidth == 0 && (j / colWidth)%scaleFreq == 0) {
+      std::cout << grad.printScale(colWidth) << std::endl;
+    }
+    bool literal = lzmaDecoder.Literals[j];
+    float heat = sqrt(lzmaDecoder.Perplexities[j]/maxPerplexity);
+    avgForCol += heat;
+    maxForCol = std::max(maxForCol, heat);
+    minForCol = std::min(minForCol, heat);
+    if (options.literals) heat = literal ? 1. : 0.;
+
+    char byte = lzmaDecoder.OutWindow.OutStream.Data[j];
+    if (!std::isprint(byte)) {
+      byte = '.';
+    }
+    std::cout
+      << grad.get(heat)
+      // << std::setfill('0')
+      // << std::setw(2)
+      // << std::right
+      // << std::hex
+      << byte
+      << realcolor::reset;
+    // if (j % 16 == 16-1) {
+    //   std::cout << " ";
+    // }
+    if (j % colWidth == colWidth-1) {
+      std::cout << " "
+        << grad.get(minForCol) << " "
+        << grad.get(avgForCol/colWidth) << " "
+        << grad.get(maxForCol) << " "
+        << realcolor::reset << std::endl;
+      minForCol = 1;
+      maxForCol = 0;
+      avgForCol = 0;
+    }
+  }
+  std::cout << std::endl;
+  return 0;
+}
+
+int main(int argc, char** argv)
+{
+  int r = parse_args(argc, argv);
+  if (r >= 0) return r;
 
   CInputStream inStream;
-  inStream.File = fopen(argv[fileargind], "rb");
-  inStream.Init();
+  inStream.File = fopen(options.infile.c_str(), "rb");
   if (inStream.File == 0)
     throw "Can't open input file";
+  inStream.Init();
 
   CLzmaDecoder lzmaDecoder;
 
@@ -770,60 +910,15 @@ int main(int argc, char** argv)
     std::cerr << "Warning: LZMA stream is corrupted" << std::endl;
   }
 
-  ColorGradient grad;
-  if (jet) {
-    grad.createDefaultHeatMapGradient();
-  } else {
-    grad.createViridisHeatMapGradient();
-  }
   double maxPerplexity = *std::max_element(lzmaDecoder.Perplexities.begin(), lzmaDecoder.Perplexities.end());
-  int colWidth = 64;
-  int scaleFreq = 16;
-  float minForCol = 1.;
-  float maxForCol = 0;
-  float avgForCol = 0;
-  for (int j = 0; j < lzmaDecoder.OutWindow.OutStream.Data.size(); j++) {
-    if (!pretty) {
-      std::cout << lzmaDecoder.Perplexities[j]/maxPerplexity << std::endl;
-      continue;
-    }
-    if (j % colWidth == 0 && (j / colWidth)%scaleFreq == 0) {
-      std::cout << grad.printScale(colWidth) << std::endl;
-    }
-    bool literal = lzmaDecoder.Literals[j];
-    float heat = sqrt(lzmaDecoder.Perplexities[j]/maxPerplexity);
-    avgForCol += heat;
-    maxForCol = std::max(maxForCol, heat);
-    minForCol = std::min(minForCol, heat);
-    if (literals) heat = literal ? 1. : 0.;
 
-    char byte = lzmaDecoder.OutWindow.OutStream.Data[j];
-    if (!std::isprint(byte)) {
-      byte = '.';
-    }
-    std::cout
-      << grad.get(heat)
-      // << std::setfill('0')
-      // << std::setw(2)
-      // << std::right
-      // << std::hex
-      << byte
-      << realcolor::reset;
-    // if (j % 16 == 16-1) {
-    //   std::cout << " ";
-    // }
-    if (j % colWidth == colWidth-1) {
-      std::cout << " "
-        << grad.get(minForCol) << " "
-        << grad.get(avgForCol/colWidth) << " "
-        << grad.get(maxForCol) << " "
-        << realcolor::reset << std::endl;
-      minForCol = 1;
-      maxForCol = 0;
-      avgForCol = 0;
-    }
+  if (!options.kkpout.empty()) {
+    return output_kkp(lzmaDecoder, maxPerplexity);
+  } else if (options.pretty) {
+    return output_console(lzmaDecoder, maxPerplexity);
+  } else {
+    return output_raw(lzmaDecoder, maxPerplexity);
   }
-  std::cout << std::endl;
 
   return 0;
 }
