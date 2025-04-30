@@ -109,7 +109,7 @@ def main(opts):
         totalww+= x.wwgt
     print("-"*79)
     print("Total:%33d\t\t%10.2f\t%14.1f%%" % (totals, totalw, 100*totalw/totals))
- 
+
     return 0
 
 if __name__ == '__main__':
@@ -130,5 +130,5 @@ map file. (`ld -Map', `cc -Wl,-Map', see respective manpages.)
     p.add_argument("--lzmaspec", type=str, default="./LzmaSpec", \
                    help="LzmaSpec binary to use (default: ./LzmaSpec)")
 
-    exit(main(p.parse_args(sys.argv[1:])))
+    exit(main(p.parse_args()))
 
